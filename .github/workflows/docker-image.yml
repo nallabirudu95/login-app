@@ -1,0 +1,55 @@
+name: Django App Deployment
+
+on:
+  push:
+    branches:
+      - develop
+      - production
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Build Docker image
+        run: |
+          docker build -t narendranallabirudu16061995/webapp .
+           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          docker push narendranallabirudu16061995/webapp
+
+      - name: Print GitHub Ref
+        run: echo ${{ github.ref }}
+
+      - name: Deploy to Kubernetes
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws configure set default.region us-east-1
+          aws eks update-kubeconfig --name eks-demo  --region us-east-1
+          cd deploy_on_kubernetes
+          if [ ${{ github.ref }} = 'refs/heads/develop' ]; then
+            kubectl delete -f deploy-db-registerapp.yaml -n develop
+            kubectl apply -f deploy-db-registerapp.yaml -n develop
+            sleep 30
+            kubectl delete -f deploy-webapp-registerapp.yaml -n develop
+            kubectl apply -f deploy-webapp-registerapp.yaml -n develop
+          elif [ ${{ github.ref }} = 'refs/heads/main' ]; then
+            kubectl delete -f deploy-db-registerapp.yaml -n main
+            kubectl apply -f deploy-db-registerapp.yaml -n main
+            sleep 30
+            kubectl delete -f deploy-webapp-registerapp.yaml -n main
+            kubectl apply -f deploy-webapp-registerapp.yaml -n main
+          elif [ ${{ github.ref }} = 'refs/heads/production' ]; then
+            kubectl delete -f deploy-db-registerapp.yaml -n production
+            kubectl apply -f deploy-db-registerapp.yaml -n production
+            sleep 30
+            kubectl delete -f deploy-webapp-registerapp.yaml -n production
+            kubectl apply -f deploy-webapp-registerapp.yaml -n production
+          fi
