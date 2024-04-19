@@ -1,4 +1,3 @@
-# login-app
-# application-URL http://13.201.187.130/
-# application-signup-URL -: http://13.201.187.130/app/signup/
-# application-login-URL - http://13.201.187.130/app/login/
+# login app
+# http://44.200.67.77:31424/app/signup/
+# http://44.200.67.77:31424/app/login/
